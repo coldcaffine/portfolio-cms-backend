@@ -1,17 +1,14 @@
 from fastapi import FastAPI
-from sqlalchemy import text
-from app.database import engine
+from app.database import Base, engine
+from app.routers import auth
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Portfolio CMS API")
+
+app.include_router(auth.router)
 
 
 @app.get("/")
 def root():
     return {"status": "ok"}
-
-
-@app.get("/db-check")
-def db_check():
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT 1"))
-        return {"database": "connected", "result": result.scalar()}
