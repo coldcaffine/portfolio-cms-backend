@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
@@ -6,13 +6,12 @@ from app.database import get_db
 from app.models.message import Message
 from app.schemas.message import MessageCreate
 from app.config import settings
-
+from app.core.deps import get_current_user
 
 router = APIRouter(
     prefix="/contact",
     tags=["Contact"]
 )
-
 
 mail_config = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -69,4 +68,42 @@ Message:
     return {
         "message": "Message sent successfully",
         "id": new_message.id
+    }
+
+
+@router.get("/")
+def get_messages(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    return (
+        db.query(Message)
+        .order_by(Message.id.desc())
+        .all()
+    )
+
+
+@router.delete("/{message_id}")
+def delete_message(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    message = (
+        db.query(Message)
+        .filter(Message.id == message_id)
+        .first()
+    )
+
+    if not message:
+        raise HTTPException(
+            status_code=404,
+            detail="Message not found"
+        )
+
+    db.delete(message)
+    db.commit()
+
+    return {
+        "message": "Message deleted successfully"
     }

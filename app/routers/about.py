@@ -15,10 +15,20 @@ def create_about(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    existing_about = db.query(About).first()
+
+    if existing_about:
+        raise HTTPException(
+            status_code=400,
+            detail="About information already exists",
+        )
+
     db_about = About(**about.model_dump())
+
     db.add(db_about)
     db.commit()
     db.refresh(db_about)
+
     return db_about
 
 
@@ -27,24 +37,31 @@ def get_about(db: Session = Depends(get_db)):
     about = db.query(About).first()
 
     if not about:
-        raise HTTPException(status_code=404, detail="About information not found")
+        raise HTTPException(
+            status_code=404,
+            detail="About information not found",
+        )
 
     return about
 
 
-@router.put("/{about_id}", response_model=AboutResponse)
+@router.put("/", response_model=AboutResponse)
 def update_about(
-    about_id: int,
     about: AboutUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    db_about = db.query(About).filter(About.id == about_id).first()
+    db_about = db.query(About).first()
 
     if not db_about:
-        raise HTTPException(status_code=404, detail="About information not found")
+        raise HTTPException(
+            status_code=404,
+            detail="About information not found",
+        )
 
-    for key, value in about.model_dump().items():
+    update_data = about.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
         setattr(db_about, key, value)
 
     db.commit()
@@ -62,7 +79,10 @@ def delete_about(
     db_about = db.query(About).filter(About.id == about_id).first()
 
     if not db_about:
-        raise HTTPException(status_code=404, detail="About information not found")
+        raise HTTPException(
+            status_code=404,
+            detail="About information not found",
+        )
 
     db.delete(db_about)
     db.commit()

@@ -17,8 +17,15 @@ class AboutCreate(AboutBase):
     pass
 
 
-class AboutUpdate(AboutBase):
-    pass
+class AboutUpdate(BaseModel):
+    name: Optional[str] = None
+    headline: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    email: Optional[EmailStr] = None
+    github: Optional[str] = None
+    linkedin: Optional[str] = None
+    profile_image: Optional[str] = None
 
 
 class AboutResponse(AboutBase):

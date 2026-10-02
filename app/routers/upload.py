@@ -3,19 +3,16 @@ import shutil
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.media import Media
 
-
 router = APIRouter(
     prefix="/upload",
     tags=["Upload"]
 )
-
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -66,4 +63,36 @@ def upload_image(
         "filename": media.filename,
         "file_url": media.file_url,
         "file_type": media.file_type
+    }
+
+
+@router.delete("/{media_id}")
+def delete_media(
+    media_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    media = (
+        db.query(Media)
+        .filter(Media.id == media_id)
+        .first()
+    )
+
+    if not media:
+        raise HTTPException(
+            status_code=404,
+            detail="Media not found"
+        )
+
+    filename = os.path.basename(media.file_url)
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    db.delete(media)
+    db.commit()
+
+    return {
+        "message": "Media deleted successfully"
     }
